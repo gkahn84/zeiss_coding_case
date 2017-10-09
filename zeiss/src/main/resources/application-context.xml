@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+                        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+                        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd">
+
+	<context:annotation-config />
+	<mvc:annotation-driven />
+
+	<bean id="dataService" class="de.gkahn.zeiss.persistence.JpaDataService" />
+	<bean id="apiController" class="de.gkahn.zeiss.controller.ApiController">
+		<constructor-arg name="dataService" ref="dataService" />
+	</bean>
+	<bean id="machineStreamListener" class="de.gkahn.zeiss.business.MachineStreamListener"
+		init-method="init">
+		<constructor-arg name="dataService" ref="dataService" />
+	</bean>
+
+	<bean id="persistence.dataSource" class="com.zaxxer.hikari.HikariDataSource"
+		destroy-method="close">
+		<constructor-arg>
+			<bean class="com.zaxxer.hikari.HikariConfig">
+				<constructor-arg>
+					<props>
+						<prop key="dataSource.user">zeiss</prop>
+						<prop key="dataSource.password">zeiss123</prop>
+						<prop key="dataSource.serverName">localhost</prop>
+						<prop key="dataSource.port">3306</prop>
+						<prop key="dataSource.databaseName">zeiss</prop>
+						<prop key="validationTimeout">10000</prop>
+					</props>
+				</constructor-arg>
+				<property name="dataSourceClassName" value="org.mariadb.jdbc.MySQLDataSource" />
+			</bean>
+		</constructor-arg>
+	</bean>
+
+	<bean id="persistence.entityManagerFactory"
+		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<property name="dataSource" ref="persistence.dataSource" />
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+				<property name="showSql" value="true" />
+				<property name="generateDdl" value="true" />
+				<property name="databasePlatform" value="org.hibernate.dialect.MySQL5InnoDBDialect" />
+			</bean>
+		</property>
+		<property name="packagesToScan">
+			<list>
+				<value>de.gkahn.zeiss.model</value>
+			</list>
+		</property>
+		<property name="jpaProperties">
+			<props>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="persistence.transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="persistence.entityManagerFactory" />
+	</bean>
+
+	<tx:annotation-driven transaction-manager="persistence.transactionManager" />
+
+</beans>
